@@ -20,13 +20,20 @@ class FlaskSpecTree(_SpecTree):
 
     cli: AppGroup = None  # type: ignore
 
-    def __init__(self, backend_name: str = "flask", **kwargs):
+    def __init__(
+        self, backend_name: str = "flask", app: t.Optional[Flask] = None, **kwargs
+    ):
         super().__init__(backend_name=backend_name, **kwargs)
-
-    def init_app(self, app: Flask) -> None:
-        self.register(app)
+        if app:
+            self.init_app(app)
 
     def register(self, app: Flask) -> None:
+        self.init_app(app)
+
+    def init_app(self, app: Flask) -> None:
+        if title := app.config.get("SPECTREE_TITLE"):
+            self.config.title = title
+
         super().register(app)
 
         self.setup_cli()

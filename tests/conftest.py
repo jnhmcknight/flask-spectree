@@ -7,7 +7,7 @@ from flask_spectree import FlaskSpecTree
 def app():
     app = Flask(__name__)
     app.config["TESTING"] = True
-    FlaskSpecTree(app)
+    FlaskSpecTree(app=app)
     return app
 
 

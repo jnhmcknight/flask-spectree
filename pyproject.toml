@@ -34,7 +34,7 @@ packages = ["flask_spectree"]
 [tool.pytest.ini_options]
 timeout = 15
 testpaths = ["tests"]
-addopts = "--cov=app --cov-report=term-missing"
+addopts = "--cov=flask_spectree --cov-report=term-missing"
 filterwarnings = [
     "ignore::DeprecationWarning:spectree.*",
     "ignore::DeprecationWarning:botocore.auth.*"
