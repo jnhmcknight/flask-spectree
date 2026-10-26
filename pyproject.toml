@@ -1,17 +1,39 @@
-
 [build-system]
-requires = ["hatchling"]
+requires = ["hatchling>=1.27"]
 build-backend = "hatchling.build"
 
 [project]
 name = "Flask-Spectree"
 version = "0.1.0"
 description = "Flask extension for spectree API validation and spec generation"
+readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE"]
+authors = [{ name = "Jared McKnight" }]
 requires-python = ">=3.10"
 dependencies = [
     "flask>=3.0",
     "spectree>=1.3",
 ]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Environment :: Web Environment",
+    "Framework :: Flask",
+    "Intended Audience :: Developers",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "Operating System :: OS Independent",
+    "Topic :: Internet :: WWW/HTTP :: Dynamic Content",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+]
+
+[project.urls]
+Homepage = "https://github.com/jnhmcknight/flask-spectree"
 
 [dependency-groups]
 dev = [
@@ -24,9 +46,6 @@ dev = [
     "pytest-timeout",
     "ruff",
 ]
-
-[tool.uv]
-package = false
 
 [tool.hatch.build.targets.wheel]
 packages = ["flask_spectree"]
@@ -41,7 +60,7 @@ filterwarnings = [
 ]
 
 [tool.pyright]
-include = ["app", "tests"]
+include = ["flask_spectree", "tests"]
 useLibraryCodeForTypes = true
 enableExperimentalFeatures = true
 verboseOutput = true
