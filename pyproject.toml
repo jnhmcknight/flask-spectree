@@ -37,7 +37,6 @@ Homepage = "https://github.com/jnhmcknight/flask-spectree"
 
 [dependency-groups]
 dev = [
-    "black",
     "pyright",
     "pytest",
     "pytest-cov",
@@ -81,9 +80,11 @@ venv = ".venv"
 # T20: flake8-print (no stray print statements)
 # TC004: runtime-import-in-type-checking-block
 # UP: pyupgrade
-# F401: Unused imports
+# I: isort
+# W: pycodestyle warnings
 #
-select = ["B", "C4", "FLY", "PERF", "PIE", "PLC0415", "RUF", "SIM", "T20", "TC004", "UP", "F401"]
+# These extend ruff's default rules (E4, E7, E9, F) rather than replacing them
+extend-select = ["B", "C4", "FLY", "PERF", "PIE", "PLC0415", "RUF", "SIM", "T20", "TC004", "UP", "I", "W"]
 
 # C408: Don't flag dict with keyword args; more readable in templating, etc.
 # PERF401: list comprehension to create transformed list
@@ -98,4 +99,7 @@ convention = "pep257"
 # imports inside functions, so we ignore PLC0415 for all files in the tests
 # directory
 "tests/*" = ["PLC0415"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["flask_spectree"]
 

@@ -3,6 +3,7 @@ import subprocess
 
 import pytest
 from flask import Flask
+
 from flask_spectree import FlaskSpecTree
 
 

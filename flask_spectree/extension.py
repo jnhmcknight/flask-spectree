@@ -1,7 +1,7 @@
-import subprocess
-import typing as t
 import json
+import subprocess
 import sys
+import typing as t
 
 import click
 from flask import Flask
@@ -21,7 +21,7 @@ class FlaskSpecTree(_SpecTree):
     cli: AppGroup = None  # type: ignore
 
     def __init__(
-        self, backend_name: str = "flask", app: t.Optional[Flask] = None, **kwargs
+        self, backend_name: str = "flask", app: Flask | None = None, **kwargs
     ):
         super().__init__(backend_name=backend_name, **kwargs)
         if app:
