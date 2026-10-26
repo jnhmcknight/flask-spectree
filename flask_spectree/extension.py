@@ -20,9 +20,7 @@ class FlaskSpecTree(_SpecTree):
 
     cli: AppGroup = None  # type: ignore
 
-    def __init__(
-        self, backend_name: str = "flask", app: Flask | None = None, **kwargs
-    ):
+    def __init__(self, backend_name: str = "flask", app: Flask | None = None, **kwargs):
         super().__init__(backend_name=backend_name, **kwargs)
         if app:
             self.init_app(app)

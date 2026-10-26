@@ -150,9 +150,7 @@ def test_flatten_rewrites_refs_throughout_document():
                     "200": {
                         "content": {
                             "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/Foo.abc1234"
-                                }
+                                "schema": {"$ref": "#/components/schemas/Foo.abc1234"}
                             }
                         }
                     }
@@ -161,11 +159,9 @@ def test_flatten_rewrites_refs_throughout_document():
         }
     }
     result = flatten(spec)
-    ref = (
-        result["paths"]["/foo"]["get"]["responses"]["200"]["content"][
-            "application/json"
-        ]["schema"]["$ref"]
-    )
+    ref = result["paths"]["/foo"]["get"]["responses"]["200"]["content"][
+        "application/json"
+    ]["schema"]["$ref"]
     assert ref == "#/components/schemas/Foo"
 
 
@@ -257,15 +253,11 @@ def test_flatten_pass2_reclaims_bare_name_for_same_short_name():
             "Child.bbb2222": child,
             "Storage.ccc3333": {
                 "type": "object",
-                "properties": {
-                    "child": {"$ref": "#/components/schemas/Child.aaa1111"}
-                },
+                "properties": {"child": {"$ref": "#/components/schemas/Child.aaa1111"}},
             },
             "Storage.ddd4444": {
                 "type": "object",
-                "properties": {
-                    "child": {"$ref": "#/components/schemas/Child.bbb2222"}
-                },
+                "properties": {"child": {"$ref": "#/components/schemas/Child.bbb2222"}},
             },
         }
     )
@@ -289,15 +281,11 @@ def test_flatten_pass2_fallback_name_quality_winner():
             # after normalisation both refs become "Child" and the schemas are equal.
             "Cat.ccc3333": {
                 "type": "object",
-                "properties": {
-                    "child": {"$ref": "#/components/schemas/Child.aaa1111"}
-                },
+                "properties": {"child": {"$ref": "#/components/schemas/Child.aaa1111"}},
             },
             "Dog.ddd4444": {
                 "type": "object",
-                "properties": {
-                    "child": {"$ref": "#/components/schemas/Child.bbb2222"}
-                },
+                "properties": {"child": {"$ref": "#/components/schemas/Child.bbb2222"}},
             },
         }
     )
@@ -343,9 +331,9 @@ def test_build_rename_map_collision_avoidance():
     but different content: the second one can't claim 'Parent_Child' because
     the first already took it, so the suffix counter kicks in → 'Parent_Child_2'."""
     schemas = {
-        "Parent.aaa1111.Nested": {"type": "string"},   # → Parent_Nested
+        "Parent.aaa1111.Nested": {"type": "string"},  # → Parent_Nested
         "Parent.bbb2222.Nested": {"type": "integer"},  # → Parent_Nested_2 (collision)
-        "Other.ccc3333.Nested": {"type": "boolean"},   # → Other_Nested
+        "Other.ccc3333.Nested": {"type": "boolean"},  # → Other_Nested
     }
     result = build_rename_map(schemas)
     values = set(result.values())
