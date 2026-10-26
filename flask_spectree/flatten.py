@@ -18,9 +18,7 @@ This script:
   5. Rewrites every $ref in the document to use the new canonical names
 
 Usage:
-  python flatten.py [INPUT_FILE] [OUTPUT_FILE]
-
-Defaults: openapi.json -> openapi.flat.json
+  flask spec flatten -i openapi.json -o openapi.flat.json
 """
 
 import json
@@ -230,7 +228,7 @@ def flatten(spec: dict, *, debug: bool = False) -> dict:
 
     if not schemas:
         if debug:
-            print(  # noqa T201
+            print(  # noqa: T201
                 "No schemas found under components.schemas - nothing to do."
             )
         return spec
@@ -241,17 +239,17 @@ def flatten(spec: dict, *, debug: bool = False) -> dict:
     changed = {k: v for k, v in rename.items() if k != v}
     unique_after = len(set(rename.values()))
     if debug:
-        print(f"Schemas before: {len(schemas)}")  # noqa T201
-        print(f"Schemas renamed/merged: {len(changed)}")  # noqa T201
-        print(f"Schemas after:  {unique_after}")  # noqa T201
-        print()  # noqa T201
+        print(f"Schemas before: {len(schemas)}")  # noqa: T201
+        print(f"Schemas renamed/merged: {len(changed)}")  # noqa: T201
+        print(f"Schemas after:  {unique_after}")  # noqa: T201
+        print()  # noqa: T201
 
     if changed and debug:
         col = max(len(k) for k in changed)
-        print(f"{'Old name':<{col}}  ->  New name")  # noqa T201
-        print("-" * (col + 16))  # noqa T201
+        print(f"{'Old name':<{col}}  ->  New name")  # noqa: T201
+        print("-" * (col + 16))  # noqa: T201
         for old, new in sorted(changed.items()):
-            print(f"  {old:<{col}}  ->  {new}")  # noqa T201
+            print(f"  {old:<{col}}  ->  {new}")  # noqa: T201
 
     # Rewrite $refs in the full document (paths, request bodies, responses, …)
     _rewrite_refs_in(spec, rename)

@@ -68,12 +68,7 @@ class FlaskSpecTree(_SpecTree):
             type=click.File("w", encoding="utf-8"),
         )
         def export(format_: str, flat: bool, output_file: t.TextIO):
-            """
-            Generate the OpenAPI spec.
-
-            \f
-            :param format: Output as JSON.
-            """
+            """Generate the OpenAPI spec."""
             data = self.spec
 
             if format_ == "raw":
@@ -135,7 +130,7 @@ class FlaskSpecTree(_SpecTree):
         def flat(input_file: t.TextIO, output_file: t.TextIO):
             """Flatten an OpenAPI JSON spec by promoting nested component schemas to root level.
 
-            INPUT_FILE may be a file path or '-' to read from stdin.
+            The input and output files default to stdin and stdout.
             """
             spec = json.load(input_file)
             flat = flatten(spec)
