@@ -100,14 +100,27 @@ class FlaskSpecTree(_SpecTree):
                         ]
                     )
 
-                result = subprocess.run(
-                    cmd,
-                    input=json.dumps(maybe_flattened),
-                    capture_output=True,
-                    text=True,
-                )
-                click.echo(result.stdout)
-                click.echo(result.stderr, file=sys.stderr)
+                try:
+                    result = subprocess.run(
+                        cmd,
+                        input=json.dumps(maybe_flattened),
+                        capture_output=True,
+                        text=True,
+                        check=False,
+                    )
+                except FileNotFoundError as exc:
+                    raise click.ClickException(
+                        "npx was not found; Node.js is required for TS output"
+                    ) from exc
+
+                if result.stdout:
+                    click.echo(result.stdout)
+                if result.stderr:
+                    click.echo(result.stderr, file=sys.stderr)
+                if result.returncode:
+                    raise click.ClickException(
+                        f"openapi-typescript exited with status {result.returncode}"
+                    )
                 return
 
             if format_ == "json":

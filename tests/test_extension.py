@@ -1,4 +1,5 @@
 import json
+import subprocess
 
 import pytest
 from flask import Flask
@@ -109,3 +110,26 @@ def test_cli_export_raw_to_file(cli_runner, tmp_path):
     assert result.exit_code == 0
     assert "openapi" not in result.output
     assert "openapi" in outfile.read_text()
+
+
+def _completed(returncode=0, stdout="", stderr=""):
+    return subprocess.CompletedProcess([], returncode, stdout=stdout, stderr=stderr)
+
+
+def test_cli_export_ts_failure(cli_runner, monkeypatch):
+    monkeypatch.setattr(
+        subprocess, "run", lambda cmd, **kwargs: _completed(1, stderr="boom")
+    )
+    result = cli_runner.invoke(args=["spec", "export", "--format", "ts"])
+    assert result.exit_code == 1
+    assert "exited with status 1" in result.output
+
+
+def test_cli_export_ts_without_npx(cli_runner, monkeypatch):
+    def fake_run(cmd, **kwargs):
+        raise FileNotFoundError("npx")
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+    result = cli_runner.invoke(args=["spec", "export", "--format", "ts"])
+    assert result.exit_code == 1
+    assert "npx was not found" in result.output
