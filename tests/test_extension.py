@@ -133,3 +133,44 @@ def test_cli_export_ts_without_npx(cli_runner, monkeypatch):
     result = cli_runner.invoke(args=["spec", "export", "--format", "ts"])
     assert result.exit_code == 1
     assert "npx was not found" in result.output
+
+
+def test_cli_export_json_to_file(cli_runner, tmp_path):
+    outfile = tmp_path / "spec.json"
+    result = cli_runner.invoke(args=["spec", "export", "-o", str(outfile)])
+    assert result.exit_code == 0
+    assert "openapi" in json.loads(outfile.read_text())
+
+
+def test_cli_export_ts_stdout(cli_runner, monkeypatch):
+    calls = []
+
+    def fake_run(cmd, **kwargs):
+        calls.append((cmd, kwargs))
+        return _completed(stdout="export type Foo = {};")
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+    result = cli_runner.invoke(args=["spec", "export", "--format", "ts"])
+    assert result.exit_code == 0
+    assert "export type Foo" in result.output
+
+    cmd, kwargs = calls[0]
+    assert cmd[:2] == ["npx", "openapi-typescript"]
+    assert "-o" not in cmd
+    assert "openapi" in json.loads(kwargs["input"])
+
+
+def test_cli_export_ts_to_file(cli_runner, monkeypatch, tmp_path):
+    calls = []
+
+    def fake_run(cmd, **kwargs):
+        calls.append(cmd)
+        return _completed()
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+    outfile = tmp_path / "api.d.ts"
+    result = cli_runner.invoke(
+        args=["spec", "export", "--format", "ts", "--flat", "-o", str(outfile)]
+    )
+    assert result.exit_code == 0
+    assert calls[0][-2:] == ["-o", str(outfile)]
