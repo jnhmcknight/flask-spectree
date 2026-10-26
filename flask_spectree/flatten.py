@@ -65,7 +65,7 @@ def _rewrite_refs_in(obj, rename: dict[str, str]):
         if "$ref" in obj:
             ref = obj["$ref"]
             prefix = "#/components/schemas/"
-            if ref.startswith(prefix):
+            if isinstance(ref, str) and ref.startswith(prefix):
                 old = ref[len(prefix) :]
                 obj["$ref"] = prefix + rename.get(old, old)
         for v in obj.values():

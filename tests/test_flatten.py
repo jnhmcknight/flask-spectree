@@ -87,6 +87,13 @@ def test_rewrite_refs_in_list():
     assert obj[0]["$ref"] == "#/components/schemas/Bar"
 
 
+def test_rewrite_refs_in_non_string_ref_unchanged():
+    """A property literally named "$ref" holds a schema, not a reference."""
+    obj = {"properties": {"$ref": {"type": "string"}}}
+    _rewrite_refs_in(obj, {"Foo": "Bar"})
+    assert obj == {"properties": {"$ref": {"type": "string"}}}
+
+
 # ---------------------------------------------------------------------------
 # flatten — early return / no-op cases
 # ---------------------------------------------------------------------------
