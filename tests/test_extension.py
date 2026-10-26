@@ -99,3 +99,13 @@ def test_cli_flatten_command(cli_runner, tmp_path):
     assert result.exit_code == 0
     output = json.loads(outfile.read_text())
     assert "Foo" in output["components"]["schemas"]
+
+
+def test_cli_export_raw_to_file(cli_runner, tmp_path):
+    outfile = tmp_path / "raw.txt"
+    result = cli_runner.invoke(
+        args=["spec", "export", "--format", "raw", "-o", str(outfile)]
+    )
+    assert result.exit_code == 0
+    assert "openapi" not in result.output
+    assert "openapi" in outfile.read_text()

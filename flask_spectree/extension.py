@@ -77,7 +77,7 @@ class FlaskSpecTree(_SpecTree):
             data = self.spec
 
             if format_ == "raw":
-                click.echo(data)
+                click.echo(data, file=output_file)
                 return
 
             maybe_flattened = flatten(data) if flat else data
