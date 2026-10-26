@@ -6,7 +6,6 @@ from flask_spectree.flatten import (
     _short_name,
     build_rename_map,
     flatten,
-    rebuild_schemas,
 )
 
 
@@ -310,33 +309,15 @@ def test_flatten_pass2_fallback_name_quality_winner():
     assert len(schemas) == 2
 
 
-# ---------------------------------------------------------------------------
-# rebuild_schemas
-# ---------------------------------------------------------------------------
-
-
-def test_rebuild_schemas_basic():
-    schemas = {"Foo.abc1234": {"type": "object"}}
-    rename = {"Foo.abc1234": "Foo"}
-    assert rebuild_schemas(schemas, rename) == {"Foo": {"type": "object"}}
-
-
-def test_rebuild_schemas_deduplicates():
-    schema = {"type": "object"}
-    schemas = {"Foo.aaa1111": schema, "Bar.bbb2222.Foo": schema}
-    rename = {"Foo.aaa1111": "Foo", "Bar.bbb2222.Foo": "Foo"}
-    result = rebuild_schemas(schemas, rename)
-    assert list(result.keys()) == ["Foo"]
-
-
-def test_rebuild_schemas_output_is_sorted():
-    schemas = {
-        "Zebra.aaa1111": {"type": "string"},
-        "Apple.bbb2222": {"type": "integer"},
-    }
-    rename = {"Zebra.aaa1111": "Zebra", "Apple.bbb2222": "Apple"}
-    result = rebuild_schemas(schemas, rename)
-    assert list(result.keys()) == ["Apple", "Zebra"]
+def test_flatten_schemas_output_is_sorted():
+    spec = _make_spec(
+        {
+            "Zebra.aaa1111": {"type": "string"},
+            "Apple.bbb2222": {"type": "integer"},
+        }
+    )
+    result = flatten(spec)
+    assert list(result["components"]["schemas"]) == ["Apple", "Zebra"]
 
 
 # ---------------------------------------------------------------------------

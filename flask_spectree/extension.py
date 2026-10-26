@@ -123,12 +123,7 @@ class FlaskSpecTree(_SpecTree):
                     )
                 return
 
-            if format_ == "json":
-                output_file.write(json.dumps(maybe_flattened, indent=2))
-                return
-
-            click.echo(f"Unhandled format specified: {format_}")
-            click.Abort()
+            output_file.write(json.dumps(maybe_flattened, indent=2))
 
         @self.cli.command("flatten")
         @click.option(

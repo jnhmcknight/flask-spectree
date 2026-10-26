@@ -219,19 +219,6 @@ def build_rename_map(schemas: dict) -> dict[str, str]:
     return rename_final
 
 
-def rebuild_schemas(schemas: dict, rename: dict[str, str]) -> dict:
-    """
-    Return a new schemas dict keyed by canonical names (deduplicated).
-    Each schema's internal $refs are already rewritten by the caller.
-    """
-    new_schemas: dict = {}
-    for old_name, schema in schemas.items():
-        new_name = rename[old_name]
-        if new_name not in new_schemas:
-            new_schemas[new_name] = schema
-    return dict(sorted(new_schemas.items()))
-
-
 # ---------------------------------------------------------------------------
 # Main entry point
 # ---------------------------------------------------------------------------
