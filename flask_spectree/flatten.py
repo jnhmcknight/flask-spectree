@@ -8,14 +8,16 @@ Pydantic v2 generates schema names like:
 This script:
   1. Strips hash suffixes    ->  AccessoryDetailOut.90e892a  =>  AccessoryDetailOut
   2. Promotes child schemas  ->  Parent.hash.Child           =>  Child
-  3. Two-pass deduplication:
+  3. Deduplication:
        Pass 1 - collapse schemas with the same short name that are already
                 identical (e.g. all 12 UserNested copies)
        Pass 2 - after normalising internal $refs, collapse schemas whose
                 content is now the same (e.g. StorageNested variants that
-                only differed via their ImageNested/UserNested refs)
+                only differed via their ImageNested/UserNested refs),
+                repeated until nothing more merges, for deeper nesting
   4. Disambiguates genuinely different schemas (Parent_Child naming)
-  5. Rewrites every $ref in the document to use the new canonical names
+  5. Rewrites every $ref in the document, and every discriminator mapping,
+     to use the new canonical names
 
 Usage:
   flask spec flatten -i openapi.json -o openapi.flat.json
@@ -57,15 +59,30 @@ def _parent_prefix(name: str) -> str | None:
     return None
 
 
+SCHEMA_REF_PREFIX = "#/components/schemas/"
+
+
+def _rewrite_ref(ref, rename: dict[str, str]):
+    """*ref* with its schema name renamed, if it is a local schema ref."""
+    if isinstance(ref, str) and ref.startswith(SCHEMA_REF_PREFIX):
+        old = ref[len(SCHEMA_REF_PREFIX) :]
+        return SCHEMA_REF_PREFIX + rename.get(old, old)
+    return ref
+
+
 def _rewrite_refs_in(obj, rename: dict[str, str]):
-    """Recursively rewrite all local $ref values using *rename* (mutates obj)."""
+    """Recursively rewrite all local $ref values, and the refs a discriminator
+    maps its values to, using *rename* (mutates obj)."""
     if isinstance(obj, dict):
         if "$ref" in obj:
-            ref = obj["$ref"]
-            prefix = "#/components/schemas/"
-            if isinstance(ref, str) and ref.startswith(prefix):
-                old = ref[len(prefix) :]
-                obj["$ref"] = prefix + rename.get(old, old)
+            obj["$ref"] = _rewrite_ref(obj["$ref"], rename)
+        discriminator = obj.get("discriminator")
+        if isinstance(discriminator, dict) and isinstance(
+            discriminator.get("mapping"), dict
+        ):
+            mapping = discriminator["mapping"]
+            for value, ref in mapping.items():
+                mapping[value] = _rewrite_ref(ref, rename)
         for v in obj.values():
             _rewrite_refs_in(v, rename)
     elif isinstance(obj, list):
@@ -84,12 +101,13 @@ def _content_key(schema: dict) -> str:
 
 def build_rename_map(schemas: dict) -> dict[str, str]:
     """
-    Two-pass algorithm that returns {old_name: canonical_name}.
+    Returns {old_name: canonical_name}.
 
     Pass 1: group by short name; identical schemas share one canonical name.
             Non-identical groups are disambiguated with Parent_Child.
-    Pass 2: apply the pass-1 map to $refs *inside* each schema, then re-check
-            for newly-identical schemas and merge them.
+    Pass 2: apply the map so far to $refs *inside* each schema, then re-check
+            for newly-identical schemas and merge them; repeated until a
+            round merges nothing.
     """
 
     # --- pass 1 -----------------------------------------------------------
@@ -157,24 +175,41 @@ def build_rename_map(schemas: dict) -> dict[str, str]:
                 used.add(candidate)
                 _assign(group, candidate)
 
-    # --- pass 2: normalise $refs inside schemas, then re-deduplicate -------
-    # Clone schemas and rewrite their internal refs using the pass-1 map.
+    # --- pass 2, repeated: normalise $refs inside schemas, then merge ------
+    # Each round can only merge schemas whose refs already agree, so copies
+    # nested n levels deep (A -> B -> C -> D) need n rounds to collapse.
+    rename = rename1
+    while True:
+        merged = _merge_identical(schemas, rename)
+        if len(set(merged.values())) == len(set(rename.values())):
+            return merged
+        rename = merged
+
+
+def _merge_identical(schemas: dict, rename1: dict[str, str]) -> dict[str, str]:
+    """
+    One round of pass 2: rewrite the refs inside each schema with *rename1*,
+    then give schemas whose content is now identical one name. Returns the
+    composed {old_name: canonical_name} map.
+    """
+    # Clone schemas and rewrite their internal refs using the current map.
     normalised: dict[str, dict] = {}
     for old_name, schema in schemas.items():
         s = deepcopy(schema)
         _rewrite_refs_in(s, rename1)
-        normalised[rename1[old_name]] = s  # keyed by pass-1 canonical name
+        normalised[rename1[old_name]] = s  # keyed by current canonical name
 
-    # For canonical names that now have identical content, merge them.
-    # Collect all original → pass-1 mappings grouped by pass-1 name.
-    by_canonical: dict[str, list[str]] = defaultdict(list)
+    # Build a map: current canonical name → original short name (before
+    # disambiguation). A name an earlier round gave to schemas with different
+    # short names (Cat and Dog, merged as Cat) has none of its own, so it keeps
+    # the name it was given.
+    canon_shorts: dict[str, set[str]] = defaultdict(set)
     for orig, canon in rename1.items():
-        by_canonical[canon].append(orig)
-
-    # Build a map: pass-1 canonical name → original short name (before disambiguation)
-    canon_to_short: dict[str, str] = {}
-    for orig, canon in rename1.items():
-        canon_to_short[canon] = _short_name(orig)
+        canon_shorts[canon].add(_short_name(orig))
+    canon_to_short: dict[str, str] = {
+        canon: next(iter(shorts)) if len(shorts) == 1 else canon
+        for canon, shorts in canon_shorts.items()
+    }
 
     # Find canonical names whose normalised content is the same as another.
     # Collect all content groups first, then pick the best name for each.
@@ -209,12 +244,8 @@ def build_rename_map(schemas: dict) -> dict[str, str]:
         for canon, norm_schema in normalised.items()
     }
 
-    # Compose pass-1 and pass-2 renames into a single map
-    rename_final: dict[str, str] = {
-        orig: canon_rename[pass1] for orig, pass1 in rename1.items()
-    }
-
-    return rename_final
+    # Compose the incoming map and this round's renames into a single map
+    return {orig: canon_rename[current] for orig, current in rename1.items()}
 
 
 # ---------------------------------------------------------------------------

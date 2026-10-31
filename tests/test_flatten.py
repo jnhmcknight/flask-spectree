@@ -93,6 +93,29 @@ def test_rewrite_refs_in_non_string_ref_unchanged():
     assert obj == {"properties": {"$ref": {"type": "string"}}}
 
 
+def test_rewrite_refs_in_discriminator_mapping():
+    obj = {
+        "oneOf": [{"$ref": "#/components/schemas/Foo"}],
+        "discriminator": {
+            "propertyName": "type",
+            "mapping": {"foo": "#/components/schemas/Foo", "ext": "other.json#/Ext"},
+        },
+    }
+    _rewrite_refs_in(obj, {"Foo": "Bar"})
+    assert obj["oneOf"][0]["$ref"] == "#/components/schemas/Bar"
+    assert obj["discriminator"]["mapping"] == {
+        "foo": "#/components/schemas/Bar",
+        "ext": "other.json#/Ext",
+    }
+
+
+def test_rewrite_refs_in_property_named_discriminator_unchanged():
+    """A property literally named "discriminator" holds a schema."""
+    obj = {"properties": {"discriminator": {"type": "string"}}}
+    _rewrite_refs_in(obj, {"Foo": "Bar"})
+    assert obj == {"properties": {"discriminator": {"type": "string"}}}
+
+
 # ---------------------------------------------------------------------------
 # flatten — early return / no-op cases
 # ---------------------------------------------------------------------------
@@ -295,6 +318,59 @@ def test_flatten_pass2_fallback_name_quality_winner():
     assert "Cat" in schemas
     assert "Dog" not in schemas
     assert len(schemas) == 2
+
+
+def test_flatten_pass2_repeats_for_deep_nesting():
+    """Copies nested several levels deep under different parents only become
+    identical one level per round, so pass 2 repeats until all collapse."""
+
+    def tree(parent: str) -> dict:
+        ref = f"#/components/schemas/{parent}.aaa1111."
+        return {
+            f"{parent}.aaa1111": {"properties": {"a": {"$ref": ref + "A"}}},
+            f"{parent}.aaa1111.A": {"properties": {"b": {"$ref": ref + "B"}}},
+            f"{parent}.aaa1111.B": {"properties": {"c": {"$ref": ref + "C"}}},
+            f"{parent}.aaa1111.C": {"properties": {"d": {"$ref": ref + "D"}}},
+            f"{parent}.aaa1111.D": {"properties": {"x": {"type": "string"}}},
+        }
+
+    schemas = flatten(_make_spec({**tree("One"), **tree("Two")}))["components"][
+        "schemas"
+    ]
+    assert sorted(schemas) == ["A", "B", "C", "D", "One"]
+    assert schemas["A"] == {"properties": {"b": {"$ref": "#/components/schemas/B"}}}
+
+
+def test_flatten_discriminated_union_under_two_parents():
+    """As pydantic writes a discriminated union nested in two responses: the
+    copies merge, and the mapping names the merged schemas."""
+
+    def tree(parent: str) -> dict:
+        ref = f"#/components/schemas/{parent}.aaa1111."
+        return {
+            f"{parent}.aaa1111": {
+                "properties": {"page": {"$ref": ref + "Page"}},
+                "title": parent,
+            },
+            f"{parent}.aaa1111.Page": {
+                "oneOf": [{"$ref": ref + "Note"}, {"$ref": ref + "Song"}],
+                "discriminator": {
+                    "propertyName": "type",
+                    "mapping": {"note": ref + "Note", "song": ref + "Song"},
+                },
+            },
+            f"{parent}.aaa1111.Note": {"properties": {"type": {"const": "note"}}},
+            f"{parent}.aaa1111.Song": {"properties": {"type": {"const": "song"}}},
+        }
+
+    schemas = flatten(_make_spec({**tree("One"), **tree("Two")}))["components"][
+        "schemas"
+    ]
+    assert sorted(schemas) == ["Note", "One", "Page", "Song", "Two"]
+    assert schemas["Page"]["discriminator"]["mapping"] == {
+        "note": "#/components/schemas/Note",
+        "song": "#/components/schemas/Song",
+    }
 
 
 def test_flatten_schemas_output_is_sorted():
